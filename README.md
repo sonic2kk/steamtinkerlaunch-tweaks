@@ -1,2 +1,2 @@
 # steamtinkerlaunch-tweaks
-optional tweakfiles for steamtinkerlaunch
+optional tweakfiles for [steamtinkerlaunch](https://github.com/frostworx/steamtinkerlaunch)
