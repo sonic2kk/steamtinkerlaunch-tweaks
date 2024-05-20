@@ -1,0 +1,85 @@
+name: Build and release yad
+
+on:
+  workflow_dispatch:
+
+env:
+  YAD_VERSION: "13.0"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install required packages
+      run: |
+          sudo apt-get update
+          sudo apt-get install autoconf automake intltool libgtk-3-dev libglib2.0-dev libwebkit2gtk-4.0-dev
+
+    - name: Retrieve Yad source code
+      run: |
+          git clone https://github.com/v1cont/yad/ yad-dialog-code
+          cd yad-dialog-code
+          git checkout v$YAD_VERSION
+
+    - name: Retrieve linux deploy
+      run: |
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x ./linuxdeploy-x86_64.AppImage
+          ./linuxdeploy-x86_64.AppImage --appimage-extract
+
+    - name: Build Yad
+      working-directory: yad-dialog-code
+      run: |
+          autoreconf -ivf
+          intltoolize
+          ./configure prefix=$(pwd)/AppDir --enable-standalone
+          make
+          make install
+
+    - name: Prepare .desktop file
+      working-directory: yad-dialog-code
+      run: |
+          cat << EOF > ./yad.desktop 
+          [Desktop Entry]
+          Encoding=UTF-8
+          Name=Yad
+          Categories=GTK;Development;
+          Exec=yad
+          Icon=yad
+          Terminal=true
+          Type=Application
+          StartupNotify=true
+          EOF
+
+    - name: Create Appimage
+      working-directory: yad-dialog-code
+      run: |
+        ../squashfs-root/AppRun \
+          --appdir ./AppDir \
+          -i ./data/icons/128x128/yad.png \
+          --executable ./AppDir/bin/yad \
+          -d ./yad.desktop \
+          --output appimage
+
+    - name: Move Appimage
+      run: mv ./yad-dialog-code/*.AppImage Yad-$YAD_VERSION-x86_64.AppImage
+
+    - name: Calculate Appimage hash
+      run: sha512sum Yad-$YAD_VERSION-x86_64.AppImage > Yad-$YAD_VERSION-x86_64.AppImage.sha512sum
+
+    - name: Version workaround # See https://github.com/softprops/action-gh-release/issues/360#issuecomment-1599767780
+      id: yad_version
+      run: echo "version=$YAD_VERSION" >> "$GITHUB_OUTPUT"
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          Yad-${{ steps.yad_version.outputs.version }}-x86_64.AppImage
+          Yad-${{ steps.yad_version.outputs.version }}-x86_64.AppImage.sha512sum
+        body: "[`yad`](https://github.com/v1cont/yad) ${{ steps.yad_version.outputs.version }} appimage built on ubuntu with github actions"
+        tag_name: Yad-${{ steps.yad_version.outputs.version }}
