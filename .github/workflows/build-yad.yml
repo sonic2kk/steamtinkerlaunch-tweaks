@@ -26,10 +26,14 @@ jobs:
           git checkout v$YAD_VERSION
 
     - name: Retrieve linux deploy
+      working-directory: yad-dialog-code
       run: |
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x ./linuxdeploy-x86_64.AppImage
+          wget -c "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
+          sed -i '/export GTK_THEME/d' linuxdeploy-plugin-gtk.sh
+          chmod +x ./linuxdeploy-x86_64.AppImage ./linuxdeploy-plugin-gtk.sh
           ./linuxdeploy-x86_64.AppImage --appimage-extract
+          ./linuxdeploy-plugin-gtk.sh --help
 
     - name: Build Yad
       working-directory: yad-dialog-code
@@ -58,15 +62,16 @@ jobs:
     - name: Create Appimage
       working-directory: yad-dialog-code
       run: |
-        ../squashfs-root/AppRun \
+        ./squashfs-root/AppRun \
           --appdir ./AppDir \
           -i ./data/icons/128x128/yad.png \
           --executable ./AppDir/bin/yad \
           -d ./yad.desktop \
+          --plugin gtk \
           --output appimage
 
     - name: Move Appimage
-      run: mv ./yad-dialog-code/*.AppImage Yad-$YAD_VERSION-x86_64.AppImage
+      run: mv ./yad-dialog-code/Yad-x86_64.AppImage Yad-$YAD_VERSION-x86_64.AppImage
 
     - name: Calculate Appimage hash
       run: sha512sum Yad-$YAD_VERSION-x86_64.AppImage > Yad-$YAD_VERSION-x86_64.AppImage.sha512sum
