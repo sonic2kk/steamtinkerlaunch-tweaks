@@ -88,4 +88,4 @@ jobs:
           Yad-${{ steps.yad_version.outputs.version }}-x86_64.AppImage
           Yad-${{ steps.yad_version.outputs.version }}-x86_64.AppImage.sha512sum
         body: "[`yad`](https://github.com/v1cont/yad) ${{ steps.yad_version.outputs.version }} appimage built on ubuntu with github actions"
-        tag_name: Yad-${{ steps.yad_version.outputs.version }}
+        tag_name: Yad-${{ steps.yad_version.outputs.version }}-x86_64.AppImage
